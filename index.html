@@ -196,13 +196,24 @@
       document.getElementById("current-word").innerText = "Current Word: ";
     }
 
-    function submitWord(word) {
-      if(dictionary.includes(word.toLowerCase())) {
-        console.log('Valid word!');
+  function submitWord() {
+    const word = currentWord.toLowerCase();
+    if (dictionary.includes(word)) {
+      if (!foundWords.includes(word)) {
+        foundWords.push(word);
+        score += word.length; // simple scoring: 1 point per letter
+        document.getElementById("score").innerText = "Score: " + score;
+        document.getElementById("word-list").innerText = "Words Found: " + foundWords.join(", ");
+        clearSelection();
       } else {
-        console.log('Invalid word.');
+        alert("Word already found!");
       }
+    } else {
+      alert("Invalid word!");
+      clearSelection();
     }
+  }
+
 
     function updateTimer() {
       if (timeLeft <= 0) {
