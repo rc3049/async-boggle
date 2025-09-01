@@ -1,135 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Boggle Game</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; }
-    #board { display: grid; grid-template-columns: repeat(4, 60px); grid-gap: 8px; justify-content: center; margin: 20px auto; }
-    .cube { width: 60px; height: 60px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; user-select: none; border-radius: 6px; background: #f7f7f7; }
-    .cube.selected { background: #b3d4fc; }
-    #currentWord { font-weight: bold; margin: 10px; }
-    #score { margin: 10px; font-size: 18px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f9;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin: 20px;
+    }
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-template-rows: repeat(4, 80px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .cube {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .cube.selected {
+      background: #add8e6;
+    }
+    #controls {
+      margin: 20px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #333;
+      color: white;
+    }
+    button:hover {
+      background: #555;
+    }
+    #word-list {
+      margin: 20px;
+    }
+    #timer {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 10px;
+    }
+    /* Modal styles */
+    #summaryModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #summaryContent {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+    }
   </style>
 </head>
 <body>
-  <h1>Boggle</h1>
-  <button onclick="newGame()">New Game</button>
-  <div id="board"></div>
-  <div id="currentWord">Current Word: <span></span></div>
-  <button onclick="submitWord()">Submit Word</button>
-  <button onclick="clearSelection()">Clear</button>
+  <h1>Boggle Game</h1>
+  <div id="timer">Time: 3:00</div>
+  <div id="game-board"></div>
+  <div id="controls">
+    <button onclick="newGame()">New Game</button>
+    <button onclick="submitWord()">Submit Word</button>
+    <button onclick="clearSelection()">Clear Selection</button>
+  </div>
+  <div id="current-word">Current Word: </div>
   <div id="score">Score: 0</div>
-  <div id="words">Words: <ul></ul></div>
+  <div id="word-list">Words Found: </div>
+
+  <!-- Modal for summary -->
+  <div id="summaryModal">
+    <div id="summaryContent">
+      <h2>Time's Up!</h2>
+      <div id="finalScore"></div>
+      <div id="finalWords"></div>
+      <button onclick="closeSummary()">Play Again</button>
+    </div>
+  </div>
 
   <script>
     const BOGGLE_DICE = [
-      "AAEEGN", "ABBJOO", "ACHOPS", "AFFKPS", "AOOTTW", "CIMOTU", "DEILRX",
-      "DELRVY", "DISTTY", "EEGHNW", "EEINSU", "EHRTVW", "EIOSST", "ELRTTY",
-      "HIMNQU", "HLNNRZ"
+      ["A", "A", "E", "E", "G", "N"],
+      ["E", "L", "R", "T", "T", "Y"],
+      ["A", "O", "O", "T", "T", "W"],
+      ["A", "B", "B", "J", "O", "O"],
+      ["E", "H", "R", "T", "V", "W"],
+      ["C", "I", "M", "O", "T", "U"],
+      ["D", "I", "S", "T", "T", "Y"],
+      ["E", "I", "O", "S", "S", "T"],
+      ["D", "E", "L", "R", "V", "Y"],
+      ["A", "C", "H", "O", "P", "S"],
+      ["H", "I", "M", "N", "Qu", "U"],
+      ["E", "E", "I", "N", "S", "U"],
+      ["E", "E", "G", "H", "N", "W"],
+      ["A", "F", "F", "K", "P", "S"],
+      ["H", "L", "N", "N", "R", "Z"],
+      ["D", "E", "I", "L", "R", "X"]
     ];
 
-    // tiny dictionary for demo (replace with big one later)
-    const dictionary = new Set(["CAT", "DOG", "TREE", "WORD", "GAME", "CODE"]);
-
-    let board = [];
-    let selected = [];
+    let selectedCubes = [];
     let currentWord = "";
-    let foundWords = new Set();
+    let foundWords = [];
     let score = 0;
+    let timer;
+    let timeLeft = 180; // seconds
 
-    function shuffleArray(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
+    // Simple dictionary for demo
+    const dictionary = new Set(["CAT", "DOG", "TREE", "HOUSE", "WORD", "HELLO"]);
 
     function newGame() {
-      board = [];
-      let dice = [...BOGGLE_DICE];
-      shuffleArray(dice);
-      for (let i = 0; i < 16; i++) {
-        let die = dice[i];
-        let letter = die[Math.floor(Math.random() * die.length)];
-        if (letter === "Q") letter = "Qu";
-        board.push(letter);
-      }
-      renderBoard();
-      selected = [];
+      // Reset
+      clearInterval(timer);
+      timeLeft = 180;
+      document.getElementById("timer").innerText = "Time: 3:00";
+      selectedCubes = [];
       currentWord = "";
-      document.querySelector("#currentWord span").textContent = "";
-      foundWords.clear();
+      foundWords = [];
       score = 0;
-      updateScore();
-      document.querySelector("#words ul").innerHTML = "";
-    }
+      document.getElementById("current-word").innerText = "Current Word: ";
+      document.getElementById("score").innerText = "Score: 0";
+      document.getElementById("word-list").innerText = "Words Found: ";
+      document.getElementById("summaryModal").style.display = "none";
 
-    function renderBoard() {
-      const boardDiv = document.getElementById("board");
-      boardDiv.innerHTML = "";
+      // Shuffle dice and generate board
+      const shuffled = BOGGLE_DICE.sort(() => 0.5 - Math.random());
+      const board = shuffled.map(die => die[Math.floor(Math.random() * 6)]);
+
+      const gameBoard = document.getElementById("game-board");
+      gameBoard.innerHTML = "";
       board.forEach((letter, i) => {
-        const cube = document.createElement("div");
-        cube.className = "cube";
-        cube.textContent = letter;
-        cube.onclick = () => selectCube(i);
-        boardDiv.appendChild(cube);
+        const div = document.createElement("div");
+        div.className = "cube";
+        div.innerText = letter;
+        div.dataset.index = i;
+        div.onclick = () => selectCube(div);
+        gameBoard.appendChild(div);
       });
+
+      // Start timer
+      timer = setInterval(updateTimer, 1000);
     }
 
-    function selectCube(index) {
-      const cubeEls = document.querySelectorAll(".cube");
-      if (!selected.includes(index)) {
-        selected.push(index);
-        currentWord += board[index];
-        cubeEls[index].classList.add("selected");
-        document.querySelector("#currentWord span").textContent = currentWord;
+    function selectCube(cube) {
+      if (!cube.classList.contains("selected") && timeLeft > 0) {
+        cube.classList.add("selected");
+        selectedCubes.push(cube);
+        currentWord += cube.innerText;
+        document.getElementById("current-word").innerText = "Current Word: " + currentWord;
       }
     }
 
     function clearSelection() {
-      selected = [];
+      selectedCubes.forEach(cube => cube.classList.remove("selected"));
+      selectedCubes = [];
       currentWord = "";
-      document.querySelector("#currentWord span").textContent = "";
-      document.querySelectorAll(".cube").forEach(c => c.classList.remove("selected"));
-    }
-
-    function wordPoints(word) {
-      const len = word.length;
-      if (len < 3) return 0;
-      if (len <= 4) return 1;
-      if (len === 5) return 2;
-      if (len === 6) return 3;
-      if (len === 7) return 5;
-      return 11;
+      document.getElementById("current-word").innerText = "Current Word: ";
     }
 
     function submitWord() {
-      const word = currentWord.toUpperCase();
-      if (word.length < 3) {
-        alert("Word too short!");
-      } else if (!dictionary.has(word)) {
-        alert("Not in dictionary!");
-      } else if (foundWords.has(word)) {
-        alert("Already found!");
-      } else {
-        foundWords.add(word);
-        const pts = wordPoints(word);
-        score += pts;
-        updateScore();
-        const li = document.createElement("li");
-        li.textContent = `${word} (+${pts})`;
-        document.querySelector("#words ul").appendChild(li);
+      if (timeLeft <= 0) return;
+      if (currentWord.length >= 3 && dictionary.has(currentWord) && !foundWords.includes(currentWord)) {
+        foundWords.push(currentWord);
+        const wordScore = currentWord.length - 2; // scoring rule
+        score += wordScore;
+        document.getElementById("score").innerText = "Score: " + score;
+        document.getElementById("word-list").innerText = "Words Found: " + foundWords.join(", ");
       }
       clearSelection();
     }
 
-    function updateScore() {
-      document.getElementById("score").textContent = `Score: ${score}`;
+    function updateTimer() {
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        endGameSummary();
+        return;
+      }
+      timeLeft--;
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      document.getElementById("timer").innerText = `Time: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     }
 
-    // start with a game ready
-    newGame();
+    function endGameSummary() {
+      document.getElementById("finalScore").innerText = "Final Score: " + score;
+      document.getElementById("finalWords").innerText = "Words Found: " + (foundWords.length ? foundWords.join(", ") : "None");
+      document.getElementById("summaryModal").style.display = "flex";
+    }
+
+    function closeSummary() {
+      newGame();
+    }
   </script>
 </body>
 </html>
