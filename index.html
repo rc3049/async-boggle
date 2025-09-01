@@ -1,741 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Async Boggle</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            color: white;
-        }
-
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .info-card {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 15px 20px;
-            border-radius: 10px;
-            text-align: center;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .info-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 5px;
-        }
-
-        .info-card p {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            max-width: 400px;
-            margin: 30px auto;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-
-        .letter-cube {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(145deg, #ffffff, #e6e6e6);
-            color: #333;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .letter-cube:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .letter-cube.selected {
-            background: linear-gradient(145deg, #4CAF50, #45a049);
-            color: white;
-            transform: scale(0.95);
-        }
-
-        .letter-cube.invalid {
-            background: linear-gradient(145deg, #f44336, #da190b);
-            color: white;
-        }
-
-        .input-section {
-            margin: 30px 0;
-            text-align: center;
-        }
-
-        .current-word {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            min-height: 50px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            letter-spacing: 2px;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(145deg, #2196F3, #1976D2);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(145deg, #4CAF50, #45a049);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(145deg, #f44336, #da190b);
-            color: white;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .found-words {
-            margin-top: 30px;
-        }
-
-        .found-words h3 {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .words-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .word-item {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 12px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .game-over {
-            text-align: center;
-            margin-top: 30px;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-        }
-
-        .game-over h2 {
-            margin-bottom: 20px;
-            font-size: 2rem;
-        }
-
-        .multiplayer-section {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-
-        .multiplayer-section h3 {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .game-code-section {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-
-        input[type="text"] {
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            width: 200px;
-        }
-
-        @media (max-width: 600px) {
-            .letter-cube {
-                width: 60px;
-                height: 60px;
-                font-size: 1.4rem;
-            }
-            
-            .game-info {
-                flex-direction: column;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Boggle Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    #board { display: grid; grid-template-columns: repeat(4, 60px); grid-gap: 8px; justify-content: center; margin: 20px auto; }
+    .cube { width: 60px; height: 60px; border: 1px solid #333; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; user-select: none; border-radius: 6px; background: #f7f7f7; }
+    .cube.selected { background: #b3d4fc; }
+    #currentWord { font-weight: bold; margin: 10px; }
+    #score { margin: 10px; font-size: 18px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎲 Async Boggle</h1>
-        
-        <div class="game-info">
-            <div class="info-card">
-                <h3>⏰ Time</h3>
-                <p id="timer">3:00</p>
-            </div>
-            <div class="info-card">
-                <h3>🏆 Score</h3>
-                <p id="score">0</p>
-            </div>
-            <div class="info-card">
-                <h3>📝 Words</h3>
-                <p id="word-count">0</p>
-            </div>
-        </div>
+  <h1>Boggle</h1>
+  <button onclick="newGame()">New Game</button>
+  <div id="board"></div>
+  <div id="currentWord">Current Word: <span></span></div>
+  <button onclick="submitWord()">Submit Word</button>
+  <button onclick="clearSelection()">Clear</button>
+  <div id="score">Score: 0</div>
+  <div id="words">Words: <ul></ul></div>
 
-        <div class="game-board" id="game-board"></div>
+  <script>
+    const BOGGLE_DICE = [
+      "AAEEGN", "ABBJOO", "ACHOPS", "AFFKPS", "AOOTTW", "CIMOTU", "DEILRX",
+      "DELRVY", "DISTTY", "EEGHNW", "EEINSU", "EHRTVW", "EIOSST", "ELRTTY",
+      "HIMNQU", "HLNNRZ"
+    ];
 
-        <div class="input-section">
-            <div class="current-word" id="current-word">Click letters to form words</div>
-            <div class="controls">
-                <button class="btn-success" onclick="submitWord()" id="submit-btn" disabled>Submit Word</button>
-                <button class="btn-danger" onclick="clearSelection()">Clear</button>
-                <button class="btn-primary" onclick="newGame()">New Game</button>
-            </div>
-        </div>
+    // tiny dictionary for demo (replace with big one later)
+    const dictionary = new Set(["CAT", "DOG", "TREE", "WORD", "GAME", "CODE"]);
 
-        <div class="multiplayer-section">
-            <h3>🌐 Multiplayer</h3>
-            <div class="game-code-section">
-                <input type="text" id="game-code-input" placeholder="Enter game code">
-                <button class="btn-primary" onclick="joinGame()">Join Game</button>
-                <button class="btn-primary" onclick="createGame()">Create Game</button>
-            </div>
-            <div id="game-code-display"></div>
-        </div>
+    let board = [];
+    let selected = [];
+    let currentWord = "";
+    let foundWords = new Set();
+    let score = 0;
 
-        <div class="found-words">
-            <h3>Found Words</h3>
-            <div class="words-grid" id="words-list"></div>
-        </div>
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
 
-        <div class="game-over" id="game-over" style="display: none;">
-            <h2>🎉 Game Over!</h2>
-            <p id="final-score"></p>
-            <button class="btn-primary" onclick="newGame()" style="margin-top: 15px;">Play Again</button>
-        </div>
-    </div>
+    function newGame() {
+      board = [];
+      let dice = [...BOGGLE_DICE];
+      shuffleArray(dice);
+      for (let i = 0; i < 16; i++) {
+        let die = dice[i];
+        let letter = die[Math.floor(Math.random() * die.length)];
+        if (letter === "Q") letter = "Qu";
+        board.push(letter);
+      }
+      renderBoard();
+      selected = [];
+      currentWord = "";
+      document.querySelector("#currentWord span").textContent = "";
+      foundWords.clear();
+      score = 0;
+      updateScore();
+      document.querySelector("#words ul").innerHTML = "";
+    }
 
-    <script>
-        // Official Boggle dice configuration (1992+ version)
-        const BOGGLE_DICE = [
-            ['A','E','A','N','E','G'], ['A','H','S','P','C','O'], ['A','S','P','F','F','K'], ['O','B','J','O','A','B'],
-            ['I','O','T','M','U','C'], ['R','Y','V','D','E','L'], ['L','R','E','I','X','D'], ['E','I','U','N','E','S'],
-            ['W','N','G','E','E','H'], ['L','N','H','N','R','Z'], ['T','S','T','I','Y','D'], ['O','W','T','O','A','T'],
-            ['E','R','T','T','Y','L'], ['T','O','E','S','S','I'], ['T','E','R','W','H','V'], ['N','U','I','H','M','Qu']
-        ];
+    function renderBoard() {
+      const boardDiv = document.getElementById("board");
+      boardDiv.innerHTML = "";
+      board.forEach((letter, i) => {
+        const cube = document.createElement("div");
+        cube.className = "cube";
+        cube.textContent = letter;
+        cube.onclick = () => selectCube(i);
+        boardDiv.appendChild(cube);
+      });
+    }
 
-        // Dictionary cache for performance
-        let dictionaryCache = new Map();
-        let isLoadingDictionary = false;
+    function selectCube(index) {
+      const cubeEls = document.querySelectorAll(".cube");
+      if (!selected.includes(index)) {
+        selected.push(index);
+        currentWord += board[index];
+        cubeEls[index].classList.add("selected");
+        document.querySelector("#currentWord span").textContent = currentWord;
+      }
+    }
 
-        // Game state
-        let gameBoard = [];
-        let currentPath = [];
-        let foundWords = new Set();
-        let score = 0;
-        let timeLeft = 180; // 3 minutes
-        let gameActive = false;
-        let timerInterval = null;
-        let currentGameCode = null;
-        let multiplayerData = null;
-        let playerId = 'player_' + Math.random().toString(36).substring(2, 8);
+    function clearSelection() {
+      selected = [];
+      currentWord = "";
+      document.querySelector("#currentWord span").textContent = "";
+      document.querySelectorAll(".cube").forEach(c => c.classList.remove("selected"));
+    }
 
-        // Comprehensive dictionary using multiple validation methods
-        const COMPREHENSIVE_DICTIONARY = new Set([
-            // Common 3-letter words
-            'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'HAD', 'BY', 'HOT', 'WORD', 'WHAT', 'SAID', 'EACH', 'SHE', 'DO', 'HOW', 'THEIR', 'IF', 'UP', 'OUT', 'MANY', 'THEN', 'THEM', 'SO', 'THESE', 'HER', 'LONG', 'MAKE', 'THING', 'SEE', 'HIM', 'TWO', 'MORE', 'HAS', 'GO', 'NO', 'WAY', 'MY', 'THAN', 'FIRST', 'BEEN', 'CALL', 'WHO', 'ITS', 'NOW', 'FIND', 'DID', 'GET', 'MAY', 'PART', 'OVER', 'NEW', 'SOUND', 'TAKE', 'ONLY', 'LITTLE', 'WORK', 'KNOW', 'PLACE', 'YEAR', 'LIVE', 'ME', 'BACK', 'GIVE', 'MOST', 'VERY', 'AFTER', 'MOVE', 'WHY', 'BEFORE', 'HERE', 'OLD', 'SAME', 'ANY', 'RIGHT', 'STUDY', 'BOY', 'FOLLOW', 'CAME', 'WANT', 'SHOW', 'ALSO', 'AROUND', 'FARM', 'THREE', 'SMALL', 'SET', 'PUT', 'END', 'DOES', 'ANOTHER', 'WELL', 'LARGE', 'MUST', 'BIG', 'EVEN', 'SUCH', 'BECAUSE', 'TURN', 'ASK', 'WENT', 'MEN', 'READ', 'NEED', 'LAND', 'DIFFERENT', 'HOME', 'US', 'TRY', 'KIND', 'HAND', 'PICTURE', 'AGAIN', 'CHANGE', 'OFF', 'PLAY', 'SPELL', 'AIR', 'AWAY', 'ANIMAL', 'HOUSE', 'POINT', 'PAGE', 'LETTER', 'MOTHER', 'ANSWER', 'FOUND', 'STILL', 'LEARN', 'SHOULD', 'AMERICA', 'WORLD', 'HIGH', 'EVERY', 'NEAR', 'ADD', 'FOOD', 'BETWEEN', 'OWN', 'BELOW', 'COUNTRY', 'PLANT', 'LAST', 'SCHOOL', 'FATHER', 'KEEP', 'TREE', 'NEVER', 'START', 'CITY', 'EARTH', 'EYE', 'LIGHT', 'THOUGHT', 'HEAD', 'UNDER', 'STORY', 'SAW', 'LEFT', 'FEW', 'WHILE', 'ALONG', 'MIGHT', 'CLOSE', 'SOMETHING', 'SEEM', 'NEXT', 'HARD', 'OPEN', 'EXAMPLE', 'BEGIN', 'LIFE', 'ALWAYS', 'THOSE', 'BOTH', 'PAPER', 'TOGETHER', 'GOT', 'GROUP', 'OFTEN', 'RUN', 'IMPORTANT', 'UNTIL', 'CHILDREN', 'SIDE', 'FEET', 'CAR', 'MILE', 'NIGHT', 'WALK', 'WHITE', 'SEA', 'BEGAN', 'GROW', 'TOOK', 'RIVER', 'FOUR', 'CARRY', 'STATE', 'ONCE', 'BOOK', 'HEAR', 'STOP', 'WITHOUT', 'SECOND', 'LATER', 'MISS', 'IDEA', 'ENOUGH', 'EAT', 'FACE', 'WATCH', 'FAR', 'INDIAN', 'REALLY', 'ALMOST', 'LET', 'ABOVE', 'GIRL', 'SOMETIMES', 'MOUNTAIN', 'CUT', 'YOUNG', 'TALK', 'SOON', 'LIST', 'SONG', 'BEING', 'LEAVE', 'FAMILY',
-            // 3-letter words common in Boggle
-            'ACE', 'ACT', 'ADD', 'ADS', 'AGE', 'AGO', 'AID', 'AIM', 'AIR', 'ALE', 'ARC', 'ARK', 'ARM', 'ART', 'ASH', 'ASK', 'ATE', 'AWE', 'AXE', 'BAD', 'BAG', 'BAR', 'BAT', 'BAY', 'BED', 'BEE', 'BET', 'BIG', 'BIN', 'BIT', 'BOX', 'BOY', 'BUD', 'BUG', 'BUS', 'BUT', 'BUY', 'CAB', 'CAD', 'CAN', 'CAP', 'CAR', 'CAT', 'COB', 'COD', 'COG', 'COW', 'COX', 'COY', 'CRY', 'CUB', 'CUD', 'CUE', 'CUP', 'CUR', 'CUT', 'DAB', 'DAD', 'DAM', 'DAY', 'DEN', 'DEW', 'DID', 'DIE', 'DIG', 'DIM', 'DIN', 'DOC', 'DOE', 'DOG', 'DOT', 'DRY', 'DUB', 'DUD', 'DUE', 'DUG', 'DUN', 'DYE', 'EAR', 'EAT', 'EEL', 'EGG', 'ELF', 'ELK', 'ELM', 'END', 'ERA', 'ERR', 'EVE', 'EWE', 'EYE', 'FAD', 'FAN', 'FAR', 'FAT', 'FAX', 'FED', 'FEE', 'FEW', 'FIB', 'FIG', 'FIN', 'FIR', 'FIT', 'FIX', 'FLU', 'FLY', 'FOB', 'FOE', 'FOG', 'FOR', 'FOX', 'FRY', 'FUN', 'FUR', 'GAB', 'GAG', 'GAL', 'GAP', 'GAS', 'GAY', 'GEL', 'GEM', 'GET', 'GIG', 'GIN', 'GNU', 'GOD', 'GOT', 'GUM', 'GUN', 'GUT', 'GUY', 'GYM', 'HAD', 'HAG', 'HAM', 'HAT', 'HAY', 'HEN', 'HEP', 'HER', 'HEW', 'HEX', 'HEY', 'HID', 'HIM', 'HIP', 'HIS', 'HIT', 'HOB', 'HOD', 'HOG', 'HOP', 'HOT', 'HOW', 'HUB', 'HUE', 'HUG', 'HUM', 'HUN', 'HUT', 'ICE', 'ICY', 'ILL', 'IMP', 'INK', 'INN', 'ION', 'IRE', 'ITS', 'IVY', 'JAB', 'JAG', 'JAM', 'JAR', 'JAW', 'JAY', 'JET', 'JIG', 'JOB', 'JOG', 'JOT', 'JOY', 'JUG', 'JUT', 'KEG', 'KEN', 'KEY', 'KID', 'KIN', 'KIT', 'LAB', 'LAC', 'LAD', 'LAG', 'LAP', 'LAW', 'LAX', 'LAY', 'LED', 'LEG', 'LET', 'LID', 'LIE', 'LIP', 'LIT', 'LOG', 'LOT', 'LOW', 'LYE', 'MAD', 'MAN', 'MAP', 'MAR', 'MAT', 'MAW', 'MAX', 'MAY', 'MEN', 'MET', 'MID', 'MIX', 'MOB', 'MOD', 'MOM', 'MOP', 'MOW', 'MUD', 'MUG', 'NAB', 'NAG', 'NAP', 'NET', 'NEW', 'NIB', 'NIT', 'NOB', 'NOD', 'NOR', 'NOT', 'NOW', 'NUB', 'NUN', 'NUT', 'OAK', 'OAR', 'ODD', 'ODE', 'OFF', 'OFT', 'OIL', 'OLD', 'ONE', 'OPT', 'ORB', 'ORE', 'OUR', 'OUT', 'OWE', 'OWL', 'OWN', 'PAD', 'PAL', 'PAN', 'PAP', 'PAR', 'PAT', 'PAW', 'PAX', 'PAY', 'PEA', 'PEG', 'PEN', 'PEP', 'PER', 'PET', 'PEW', 'PIE', 'PIG', 'PIN', 'PIT', 'PLY', 'POD', 'POP', 'POT', 'POW', 'PRY', 'PUB', 'PUG', 'PUN', 'PUP', 'PUS', 'PUT', 'RAG', 'RAM', 'RAN', 'RAP', 'RAT', 'RAW', 'RAY', 'RED', 'REF', 'REM', 'REP', 'REV', 'RIB', 'RID', 'RIG', 'RIM', 'RIP', 'ROB', 'ROD', 'ROE', 'ROT', 'ROW', 'RUB', 'RUG', 'RUM', 'RUN', 'RUT', 'RYE', 'SAC', 'SAD', 'SAG', 'SAP', 'SAT', 'SAW', 'SAY', 'SEA', 'SET', 'SEW', 'SEX', 'SHE', 'SHY', 'SIN', 'SIP', 'SIR', 'SIS', 'SIT', 'SIX', 'SKI', 'SKY', 'SLY', 'SOB', 'SOD', 'SON', 'SOP', 'SOT', 'SOW', 'SOY', 'SPA', 'SPY', 'STY', 'SUB', 'SUM', 'SUN', 'SUP', 'TAB', 'TAD', 'TAG', 'TAN', 'TAP', 'TAR', 'TAT', 'TAX', 'TEA', 'TEN', 'THE', 'THY', 'TIC', 'TIE', 'TIN', 'TIP', 'TOE', 'TON', 'TOO', 'TOP', 'TOT', 'TOW', 'TOY', 'TRY', 'TUB', 'TUG', 'TUN', 'TUT', 'TWO', 'URN', 'USE', 'VAN', 'VAT', 'VET', 'VIA', 'VIE', 'VOW', 'WAD', 'WAG', 'WAR', 'WAS', 'WAX', 'WAY', 'WEB', 'WED', 'WEE', 'WET', 'WHO', 'WHY', 'WIG', 'WIN', 'WIT', 'WOE', 'WOK', 'WON', 'WOO', 'WOW', 'YAK', 'YAM', 'YAP', 'YAW', 'YEA', 'YEN', 'YES', 'YET', 'YEW', 'YIN', 'YOU', 'YOW', 'ZAP', 'ZED', 'ZEE', 'ZEN', 'ZIG', 'ZIP', 'ZIT', 'ZOO',
-            // 4-letter words and longer
-            'ABLE', 'ABLY', 'ACHE', 'ACID', 'ACME', 'ACNE', 'ACRE', 'ACTS', 'ADDS', 'AGED', 'AGES', 'AIDS', 'AIMS', 'AIRS', 'AIRY', 'AJAR', 'AKIN', 'ALES', 'ALLY', 'ALPS', 'ALSO', 'AMID', 'AMPS', 'ANDS', 'ANTE', 'ANTI', 'ANTS', 'APES', 'APEX', 'APPS', 'ARCS', 'AREA', 'ARGS', 'ARID', 'ARKS', 'ARMS', 'ARMY', 'ARTS', 'ASHY', 'ASKS', 'ATOM', 'ATOP', 'AUNT', 'AUTO', 'AWAY', 'AWED', 'AXES', 'AXIS', 'AXLE', 'BABY', 'BACK', 'BADS', 'BAGS', 'BAIL', 'BAIT', 'BAKE', 'BALD', 'BALL', 'BALM', 'BAND', 'BANG', 'BANK', 'BARE', 'BARK', 'BARN', 'BARS', 'BASE', 'BASH', 'BASK', 'BASS', 'BAST', 'BATH', 'BATS', 'BAYS', 'BEAD', 'BEAK', 'BEAM', 'BEAN', 'BEAR', 'BEAT', 'BEDS', 'BEEF', 'BEEN', 'BEER', 'BEES', 'BELL', 'BELT', 'BEND', 'BENT', 'BEST', 'BETA', 'BETS', 'BIAS', 'BIKE', 'BILL', 'BIND', 'BINS', 'BIRD', 'BITE', 'BITS', 'BLOW', 'BLUE', 'BOAR', 'BOAT', 'BODY', 'BOIL', 'BOLD', 'BOLT', 'BOMB', 'BOND', 'BONE', 'BOOK', 'BOOM', 'BOOT', 'BORE', 'BORN', 'BOSS', 'BOTH', 'BOUT', 'BOWL', 'BOYS', 'BUCK', 'BUDS', 'BUGS', 'BULK', 'BULL', 'BUMP', 'BUNK', 'BURN', 'BURY', 'BUSH', 'BUST', 'BUSY', 'BUYS', 'BUZZ', 'BYTE', 'CAFE', 'CAGE', 'CAKE', 'CALL', 'CALM', 'CAME', 'CAMP', 'CANE', 'CAPS', 'CARD', 'CARE', 'CARS', 'CART', 'CASE', 'CASH', 'CAST', 'CATS', 'CAVE', 'CELL', 'CHAT', 'CHEF', 'CHIP', 'CHOP', 'CITE', 'CITY', 'CLAD', 'CLAM', 'CLAN', 'CLAP', 'CLAY', 'CLEW', 'CLIP', 'CLOD', 'CLOG', 'CLOT', 'CLUB', 'CLUE', 'COAL', 'COAT', 'COAX', 'CODE', 'COIN', 'COLD', 'COLT', 'COMA', 'COME', 'CONE', 'COOK', 'COOL', 'COPE', 'COPY', 'CORD', 'CORE', 'CORK', 'CORN', 'COST', 'COSY', 'COUP', 'COVE', 'COWS', 'COZY', 'CRAB', 'CREW', 'CROP', 'CROW', 'CUBE', 'CUBS', 'CUED', 'CUES', 'CULT', 'CUPS', 'CURB', 'CURE', 'CURL', 'CURT', 'CUTE', 'CUTS', 'CYAN', 'DAME', 'DAMP', 'DAMS', 'DARE', 'DARK', 'DARN', 'DART', 'DASH', 'DATA', 'DATE', 'DAYS', 'DAZE', 'DEAD', 'DEAF', 'DEAL', 'DEAN', 'DEAR', 'DEBT', 'DECK', 'DEED', 'DEEM', 'DEEP', 'DEER', 'DELI', 'DEMO', 'DENT', 'DENY', 'DESK', 'DEWS', 'DIAL', 'DICE', 'DIED', 'DIES', 'DIET', 'DIGS', 'DIME', 'DIMS', 'DINE', 'DINS', 'DIRE', 'DIRT', 'DISC', 'DISH', 'DISK', 'DIVE', 'DOCK', 'DOCS', 'DOES', 'DOGS', 'DOLL', 'DOME', 'DONE', 'DOOM', 'DOOR', 'DOPE', 'DOSE', 'DOTS', 'DOVE', 'DOWN', 'DOZE', 'DRAB', 'DRAG', 'DRAW', 'DREW', 'DRIP', 'DROP', 'DRUG', 'DRUM', 'DUAL', 'DUCK', 'DUDS', 'DUEL', 'DUES', 'DULL', 'DULY', 'DUMB', 'DUMP', 'DUNE', 'DUNK', 'DUPE', 'DUSK', 'DUST', 'DUTY', 'DYED', 'DYES', 'EACH', 'EARL', 'EARN', 'EARS', 'EASE', 'EAST', 'EASY', 'EATS', 'ECHO', 'EDGE', 'EDIT', 'EELS', 'EGGS', 'ELSE', 'EMIT', 'ENDS', 'EPIC', 'EVEN', 'EVER', 'EVIL', 'EXAM', 'EXIT', 'EXPO', 'EYED', 'EYES', 'FACE', 'FACT', 'FADE', 'FADS', 'FAIL', 'FAIR', 'FAKE', 'FALL', 'FAME', 'FANS', 'FARE', 'FARM', 'FAST', 'FATE', 'FATS', 'FAWN', 'FAZE', 'FEAR', 'FEAT', 'FEED', 'FEEL', 'FEES', 'FEET', 'FELL', 'FELT', 'FEND', 'FERN', 'FEST', 'FEUD', 'FIAT', 'FIBS', 'FIGS', 'FILE', 'FILL', 'FILM', 'FIND', 'FINE', 'FINS', 'FIRE', 'FIRM', 'FIRS', 'FISH', 'FIST', 'FITS', 'FIVE', 'FIXE', 'FLAG', 'FLAP', 'FLAT', 'FLAW', 'FLAX', 'FLEA', 'FLED', 'FLEE', 'FLEW', 'FLEX', 'FLIP', 'FLIT', 'FLOG', 'FLOP', 'FLOW', 'FLUE', 'FOAL', 'FOAM', 'FOES', 'FOGS', 'FOIL', 'FOLD', 'FOLK', 'FOND', 'FONT', 'FOOD', 'FOOL', 'FOOT', 'FORD', 'FORE', 'FORK', 'FORM', 'FORT', 'FOUL', 'FOUR', 'FOWL', 'FOXY', 'FRAY', 'FREE', 'FROG', 'FROM', 'FUEL', 'FULL', 'FUND', 'FURS', 'FURY', 'FUSE', 'FUSS', 'FUZZ', 'GAIN', 'GALE', 'GALS', 'GAME', 'GANG', 'GAPS', 'GARB', 'GATE', 'GAVE', 'GAZE', 'GEAR', 'GELS', 'GEMS', 'GENE', 'GETS', 'GIFT', 'GIGS', 'GILL', 'GILT', 'GINS', 'GIRL', 'GIVE', 'GLAD', 'GLEE', 'GLEN', 'GLOW', 'GLUE', 'GOAL', 'GOAT', 'GODS', 'GOES', 'GOLD', 'GOLF', 'GONE', 'GOOD', 'GRAB', 'GRAM', 'GRAY', 'GREW', 'GREY', 'GRID', 'GRIM', 'GRIN', 'GRIP', 'GRIT', 'GROW', 'GRUB', 'GULF', 'GULL', 'GUMS', 'GUNS', 'GUST', 'GUTS', 'GUYS', 'GYMS', 'HACK', 'HAGS', 'HAIL', 'HAIR', 'HALF', 'HALL', 'HALT', 'HAMS', 'HAND', 'HANG', 'HARD', 'HARM', 'HASH', 'HATE', 'HATS', 'HAVE', 'HAZE', 'HEAD', 'HEAL', 'HEAP', 'HEAR', 'HEAT', 'HEED', 'HEEL', 'HEIR', 'HELD', 'HELL', 'HELM', 'HELP', 'HENS', 'HERB', 'HERD', 'HERE', 'HERO', 'HERS', 'HEWN', 'HEWS', 'HIDE', 'HIGH', 'HIKE', 'HILL', 'HILT', 'HIND', 'HINT', 'HIPS', 'HIRE', 'HITS', 'HIVE', 'HOAX', 'HOBS', 'HOGS', 'HOLD', 'HOLE', 'HOLY', 'HOME', 'HOOD', 'HOOF', 'HOOK', 'HOOP', 'HOOT', 'HOPE', 'HOPS', 'HORN', 'HOST', 'HOUR', 'HOWL', 'HUBS', 'HUED', 'HUES', 'HUGE', 'HUGS', 'HULK', 'HULL', 'HUMS', 'HUNG', 'HUNK', 'HUNT', 'HURL', 'HURT', 'HUSH', 'HUTS', 'HYMN', 'ICED', 'ICES', 'ICON', 'IDEA', 'IDLE', 'IDOL', 'ILLS', 'IMPS', 'INCH', 'INFO', 'INKS', 'INNS', 'INTO', 'IONS', 'IRIS', 'IRON', 'ISLE', 'ITCH', 'ITEM', 'JABS', 'JACK', 'JADE', 'JAGS', 'JAIL', 'JAMS', 'JARS', 'JAVA', 'JAWS', 'JAZZ', 'JEEP', 'JEST', 'JETS', 'JEWS', 'JIBS', 'JIGS', 'JILT', 'JOBS', 'JOCK', 'JOGS', 'JOIN', 'JOKE', 'JOLT', 'JOTS', 'JOWL', 'JOYS', 'JUGS', 'JUMP', 'JUNE', 'JUNK', 'JURY', 'JUST', 'JUTE', 'JUTS', 'KEEN', 'KEEP', 'KEGS', 'KELP', 'KENS', 'KEPT', 'KEYS', 'KICK', 'KIDS', 'KILL', 'KILN', 'KILO', 'KIND', 'KING', 'KINK', 'KIPS
-        // Initialize game
-        function initGame() {
-            generateBoard();
-            resetGame();
-            updateDisplay();
-        }
+    function wordPoints(word) {
+      const len = word.length;
+      if (len < 3) return 0;
+      if (len <= 4) return 1;
+      if (len === 5) return 2;
+      if (len === 6) return 3;
+      if (len === 7) return 5;
+      return 11;
+    }
 
-        function generateBoard() {
-            const board = document.getElementById('game-board');
-            board.innerHTML = '';
-            gameBoard = [];
+    function submitWord() {
+      const word = currentWord.toUpperCase();
+      if (word.length < 3) {
+        alert("Word too short!");
+      } else if (!dictionary.has(word)) {
+        alert("Not in dictionary!");
+      } else if (foundWords.has(word)) {
+        alert("Already found!");
+      } else {
+        foundWords.add(word);
+        const pts = wordPoints(word);
+        score += pts;
+        updateScore();
+        const li = document.createElement("li");
+        li.textContent = `${word} (+${pts})`;
+        document.querySelector("#words ul").appendChild(li);
+      }
+      clearSelection();
+    }
 
-            // Shuffle dice
-            const shuffledDice = [...BOGGLE_DICE].sort(() => Math.random() - 0.5);
+    function updateScore() {
+      document.getElementById("score").textContent = `Score: ${score}`;
+    }
 
-            for (let i = 0; i < 16; i++) {
-                const die = shuffledDice[i];
-                const letter = die[Math.floor(Math.random() * die.length)];
-                
-                const cube = document.createElement('button');
-                cube.className = 'letter-cube';
-                cube.textContent = letter;
-                cube.dataset.index = i;
-                cube.onclick = () => selectLetter(i);
-                
-                board.appendChild(cube);
-                gameBoard.push({
-                    letter: letter,
-                    element: cube
-                });
-            }
-        }
-
-        function selectLetter(index) {
-            if (!gameActive) return;
-
-            const cube = gameBoard[index];
-            const isSelected = currentPath.includes(index);
-
-            if (isSelected) {
-                // Remove from path if it's the last selected
-                if (currentPath[currentPath.length - 1] === index) {
-                    currentPath.pop();
-                    cube.element.classList.remove('selected');
-                }
-            } else {
-                // Check if adjacent to last selected or first selection
-                if (currentPath.length === 0 || isAdjacent(currentPath[currentPath.length - 1], index)) {
-                    currentPath.push(index);
-                    cube.element.classList.add('selected');
-                } else {
-                    // Flash invalid selection
-                    cube.element.classList.add('invalid');
-                    setTimeout(() => cube.element.classList.remove('invalid'), 200);
-                }
-            }
-
-            updateCurrentWord();
-        }
-
-        function isAdjacent(index1, index2) {
-            const row1 = Math.floor(index1 / 4);
-            const col1 = index1 % 4;
-            const row2 = Math.floor(index2 / 4);
-            const col2 = index2 % 4;
-
-            return Math.abs(row1 - row2) <= 1 && Math.abs(col1 - col2) <= 1;
-        }
-
-        function updateCurrentWord() {
-            const word = currentPath.map(i => gameBoard[i].letter).join('');
-            document.getElementById('current-word').textContent = word || 'Click letters to form words';
-            document.getElementById('submit-btn').disabled = word.length < 3;
-        }
-
-        function clearSelection() {
-            currentPath.forEach(index => {
-                gameBoard[index].element.classList.remove('selected');
-            });
-            currentPath = [];
-            updateCurrentWord();
-        }
-
-        async function submitWord() {
-            const word = currentPath.map(i => gameBoard[i].letter).join('').replace('Qu', 'QU').toUpperCase();
-            
-            if (word.length < 3) return;
-
-            // Show loading state
-            document.getElementById('submit-btn').textContent = 'Checking...';
-            document.getElementById('submit-btn').disabled = true;
-
-            const isValidWord = await validateWord(word);
-            
-            if (isValidWord && !foundWords.has(word)) {
-                foundWords.add(word);
-                
-                // Calculate score based on word length
-                let points = 0;
-                if (word.length === 3 || word.length === 4) points = 1;
-                else if (word.length === 5) points = 2;
-                else if (word.length === 6) points = 3;
-                else if (word.length === 7) points = 5;
-                else if (word.length >= 8) points = 11;
-                
-                score += points;
-                
-                addWordToList(word, points);
-                updateDisplay();
-                
-                // Update multiplayer game state
-                if (currentGameCode && multiplayerData) {
-                    updateMultiplayerGameState();
-                }
-                
-                // Flash success
-                currentPath.forEach(index => {
-                    gameBoard[index].element.style.background = 'linear-gradient(145deg, #4CAF50, #45a049)';
-                    setTimeout(() => {
-                        gameBoard[index].element.style.background = '';
-                    }, 500);
-                });
-            } else {
-                // Flash invalid word
-                currentPath.forEach(index => {
-                    gameBoard[index].element.classList.add('invalid');
-                    setTimeout(() => {
-                        gameBoard[index].element.classList.remove('invalid');
-                    }, 500);
-                });
-            }
-
-            // Reset button state
-            document.getElementById('submit-btn').textContent = 'Submit Word';
-            clearSelection();
-        }
-
-        function addWordToList(word, points) {
-            const wordsList = document.getElementById('words-list');
-            const wordItem = document.createElement('div');
-            wordItem.className = 'word-item';
-            wordItem.innerHTML = `${word} <small>(${points}pts)</small>`;
-            wordsList.appendChild(wordItem);
-        }
-
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateTimer();
-                
-                if (timeLeft <= 0) {
-                    endGame();
-                }
-            }, 1000);
-        }
-
-        function updateTimer() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function updateDisplay() {
-            document.getElementById('score').textContent = score;
-            document.getElementById('word-count').textContent = foundWords.size;
-        }
-
-        function resetGame() {
-            foundWords.clear();
-            score = 0;
-            timeLeft = 180;
-            gameActive = false;
-            currentPath = [];
-            
-            if (timerInterval) clearInterval(timerInterval);
-            
-            document.getElementById('words-list').innerHTML = '';
-            document.getElementById('game-over').style.display = 'none';
-            updateDisplay();
-            updateTimer();
-            updateCurrentWord();
-        }
-
-        function newGame() {
-            generateBoard();
-            resetGame();
-            startGame();
-        }
-
-        function startGame() {
-            gameActive = true;
-            startTimer();
-        }
-
-        function endGame() {
-            gameActive = false;
-            if (timerInterval) clearInterval(timerInterval);
-            
-            document.getElementById('final-score').textContent = `Final Score: ${score} points with ${foundWords.size} words found!`;
-            document.getElementById('game-over').style.display = 'block';
-            
-            // Save game to history
-            saveGameResult();
-        }
-
-        // Enhanced multiplayer functionality with real-time async support
-        function createGame() {
-            currentGameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            multiplayerData = {
-                board: gameBoard.map(cube => cube.letter),
-                createdAt: Date.now(),
-                gameActive: true,
-                timeLeft: 180,
-                players: {}
-            };
-            
-            multiplayerData.players[playerId] = {
-                score: 0,
-                wordsFound: [],
-                isActive: true,
-                lastUpdate: Date.now()
-            };
-            
-            // Save to localStorage (in production, use Firebase/backend)
-            const games = JSON.parse(localStorage.getItem('boggle_games') || '{}');
-            games[currentGameCode] = multiplayerData;
-            localStorage.setItem('boggle_games', JSON.stringify(games));
-            
-            document.getElementById('game-code-display').innerHTML = 
-                `<div style="text-align: center; margin-top: 15px;">
-                    <strong>Game Code: ${currentGameCode}</strong><br>
-                    <small>Share this code with friends to play the same board asynchronously!</small><br>
-                    <small>Players can join anytime and play at their own pace.</small>
-                </div>`;
-                
-            // Start polling for other players
-            startMultiplayerPolling();
-        }
-
-        function joinGame() {
-            const gameCode = document.getElementById('game-code-input').value.toUpperCase();
-            const games = JSON.parse(localStorage.getItem('boggle_games') || '{}');
-            
-            if (games[gameCode]) {
-                currentGameCode = gameCode;
-                multiplayerData = games[gameCode];
-                
-                // Add this player to the game
-                multiplayerData.players[playerId] = {
-                    score: 0,
-                    wordsFound: [],
-                    isActive: true,
-                    lastUpdate: Date.now()
-                };
-                
-                // Load the shared board
-                gameBoard.forEach((cube, index) => {
-                    cube.letter = multiplayerData.board[index];
-                    cube.element.textContent = cube.letter;
-                });
-                
-                // Update game state
-                games[gameCode] = multiplayerData;
-                localStorage.setItem('boggle_games', JSON.stringify(games));
-                
-                document.getElementById('game-code-display').innerHTML = 
-                    `<div style="text-align: center; margin-top: 15px;">
-                        <strong>Joined Game: ${gameCode}</strong><br>
-                        <small>Playing on shared board with other players!</small><br>
-                        <div id="other-players-status" style="margin-top: 10px;"></div>
-                    </div>`;
-                
-                resetGame();
-                startGame();
-                startMultiplayerPolling();
-                showOtherPlayersProgress();
-            } else {
-                alert('Game code not found! Make sure the code is correct.');
-            }
-        }
-
-        function updateMultiplayerGameState() {
-            if (!currentGameCode || !multiplayerData) return;
-            
-            // Update this player's data
-            multiplayerData.players[playerId] = {
-                score: score,
-                wordsFound: Array.from(foundWords),
-                isActive: gameActive,
-                lastUpdate: Date.now()
-            };
-            
-            // Save to storage
-            const games = JSON.parse(localStorage.getItem('boggle_games') || '{}');
-            games[currentGameCode] = multiplayerData;
-            localStorage.setItem('boggle_games', JSON.stringify(games));
-        }
-
-        function startMultiplayerPolling() {
-            if (!currentGameCode) return;
-            
-            setInterval(() => {
-                if (currentGameCode) {
-                    checkForOtherPlayers();
-                }
-            }, 3000); // Check every 3 seconds
-        }
-
-        function checkForOtherPlayers() {
-            const games = JSON.parse(localStorage.getItem('boggle_games') || '{}');
-            if (games[currentGameCode]) {
-                multiplayerData = games[currentGameCode];
-                showOtherPlayersProgress();
-            }
-        }
-
-        function showOtherPlayersProgress() {
-            const statusDiv = document.getElementById('other-players-status');
-            if (!statusDiv || !multiplayerData) return;
-            
-            const otherPlayers = Object.keys(multiplayerData.players).filter(id => id !== playerId);
-            
-            if (otherPlayers.length === 0) {
-                statusDiv.innerHTML = '<small>Waiting for other players to join...</small>';
-                return;
-            }
-            
-            let statusHTML = '<div style="font-size: 0.9rem; margin-top: 10px;"><strong>Other Players:</strong><br>';
-            
-            otherPlayers.forEach(id => {
-                const player = multiplayerData.players[id];
-                const shortId = id.substring(id.length - 4);
-                const timeSince = Math.floor((Date.now() - player.lastUpdate) / 1000);
-                const status = timeSince < 30 ? '🟢 Active' : '🔴 Away';
-                
-                statusHTML += `<div style="display: flex; justify-content: space-between; margin: 5px 0; padding: 5px; background: rgba(255,255,255,0.1); border-radius: 5px;">
-                    <span>Player ${shortId}: ${player.wordsFound.length} words, ${player.score} pts</span>
-                    <span>${status}</span>
-                </div>`;
-            });
-            
-            statusHTML += '</div>';
-            statusDiv.innerHTML = statusHTML;
-        }
-
-        function saveGameResult() {
-            if (currentGameCode && multiplayerData) {
-                multiplayerData.players[playerId] = {
-                    score: score,
-                    wordsFound: Array.from(foundWords),
-                    completedAt: Date.now(),
-                    isActive: false,
-                    lastUpdate: Date.now()
-                };
-                
-                const games = JSON.parse(localStorage.getItem('boggle_games') || '{}');
-                games[currentGameCode] = multiplayerData;
-                localStorage.setItem('boggle_games', JSON.stringify(games));
-                
-                // Show final comparison with other players
-                showFinalResults();
-            }
-        }
-
-        function showFinalResults() {
-            if (!multiplayerData) return;
-            
-            let resultsHTML = '<div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">';
-            resultsHTML += '<h4>🏆 Final Results</h4>';
-            
-            // Sort players by score
-            const playerResults = Object.keys(multiplayerData.players).map(id => {
-                const player = multiplayerData.players[id];
-                const shortId = id === playerId ? 'You' : `Player ${id.substring(id.length - 4)}`;
-                return { id: shortId, ...player };
-            }).sort((a, b) => b.score - a.score);
-            
-            playerResults.forEach((player, index) => {
-                const trophy = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-                resultsHTML += `<div style="margin: 5px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px;">
-                    ${trophy} ${player.id}: ${player.score} points, ${player.wordsFound.length} words
-                </div>`;
-            });
-            
-            resultsHTML += '</div>';
-            
-            document.getElementById('game-over').innerHTML += resultsHTML;
-        }
-
-        // Keyboard support
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !document.getElementById('submit-btn').disabled) {
-                submitWord();
-            } else if (e.key === 'Escape') {
-                clearSelection();
-            }
-        });
-
-        // Initialize the game when page loads
-        initGame();
-    </script>
+    // start with a game ready
+    newGame();
+  </script>
 </body>
 </html>
