@@ -94,6 +94,7 @@
     <button onclick="submitWord()">Submit Word</button>
     <button onclick="clearSelection()">Clear Selection</button>
   </div>
+  <div id="status-message" style="color: red; margin: 10px;"></div>
   <div id="current-word">Current Word: </div>
   <div id="score">Score: 0</div>
   <div id="word-list">Words Found: </div>
@@ -217,11 +218,13 @@
           document.getElementById("word-list").innerText = "Words Found: " + foundWords.join(", ");
           clearSelection();
         } else {
-          alert("Word already found!");
+          statusDiv.innerText = "Word already found!";
+          statusDiv.style.color = "orange";
           clearSelection();
         }
       } else {
-        alert("Invalid word!");
+        statusDiv.innerText = "Invalid word!";
+        statusDiv.style.color = "red";
         clearSelection();
       }
     }
