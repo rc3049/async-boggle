@@ -99,30 +99,24 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  <!-- ✅ All scripts must be inside one module -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyCOXxs_nWUD1R8RIPgDEMd-8UokX9_4J2I",
-    authDomain: "async-boggle.firebaseapp.com",
-    projectId: "async-boggle",
-    storageBucket: "async-boggle.firebasestorage.app",
-    messagingSenderId: "555779618594",
-    appId: "1:555779618594:web:df42b0e654ba24e155977b",
-    measurementId: "G-4QFNKBPT0B"
-  };
+    // ✅ Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCOXxs_nWUD1R8RIPgDEMd-8UokX9_4J2I",
+      authDomain: "async-boggle.firebaseapp.com",
+      projectId: "async-boggle",
+      storageBucket: "async-boggle.appspot.com",
+      messagingSenderId: "555779618594",
+      appId: "1:555779618594:web:df42b0e654ba24e155977b"
+    };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     /***********************
      *  Boggle Setup
      ***********************/
@@ -155,30 +149,30 @@
     let board = [];
     let playerName = "";
 
-    // Simple dictionary placeholder (replace with real)
+    // Simple dictionary placeholder
     let dictionary = ["cat","dog","tree","rat","car","water","word"];
 
     /***********************
      *  Board Handling
      ***********************/
     async function generateBoard() {
-      const shuffled = BOGGLE_DICE.sort(() => 0.5 - Math.random());
+      const shuffled = [...BOGGLE_DICE].sort(() => 0.5 - Math.random());
       board = shuffled.map(die => die[Math.floor(Math.random() * 6)]);
-      // Save to Firestore
       boardId = Date.now().toString();
-      await db.collection("boards").doc(boardId).set({
+
+      await setDoc(doc(db, "boards", boardId), {
         board: board,
         created: new Date()
       });
-      // Update URL
+
       window.history.replaceState({}, "", "?board=" + boardId);
       renderBoard();
     }
 
     async function loadBoard(id) {
-      const doc = await db.collection("boards").doc(id).get();
-      if (doc.exists) {
-        board = doc.data().board;
+      const docSnap = await getDoc(doc(db, "boards", id));
+      if (docSnap.exists()) {
+        board = docSnap.data().board;
         boardId = id;
         renderBoard();
       } else {
@@ -204,24 +198,23 @@
     /***********************
      *  Gameplay
      ***********************/
-    function selectCube(cube) {
+    window.selectCube = function(cube) {
       if (!cube.classList.contains("selected") && timeLeft > 0) {
         cube.classList.add("selected");
         selectedCubes.push(cube);
         currentWord += cube.innerText;
-        document.getElementById("current-word").innerText =
-          "Current Word: " + currentWord;
+        document.getElementById("current-word").innerText = "Current Word: " + currentWord;
       }
-    }
+    };
 
-    function clearSelection() {
+    window.clearSelection = function() {
       selectedCubes.forEach(cube => cube.classList.remove("selected"));
       selectedCubes = [];
       currentWord = "";
       document.getElementById("current-word").innerText = "Current Word: ";
-    }
+    };
 
-    function submitWord() {
+    window.submitWord = function() {
       const word = currentWord.toLowerCase();
       if (dictionary.includes(word)) {
         if (!foundWords.includes(word)) {
@@ -236,8 +229,7 @@
           score += wordScore;
 
           document.getElementById("score").innerText = "Score: " + score;
-          document.getElementById("word-list").innerText =
-            "Words Found: " + foundWords.join(", ");
+          document.getElementById("word-list").innerText = "Words Found: " + foundWords.join(", ");
           document.getElementById("statusDiv").innerText = "";
           clearSelection();
         } else {
@@ -250,7 +242,7 @@
         statusDiv.style.color = "red";
         clearSelection();
       }
-    }
+    };
 
     function startTimer() {
       timeLeft = 180;
@@ -267,27 +259,26 @@
       timeLeft--;
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
-      document.getElementById("timer").innerText =
-        `Time: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+      document.getElementById("timer").innerText = `Time: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     }
 
     async function endGameSummary() {
-      // Save result to Firestore
       if (!playerName) playerName = prompt("Enter your name:", "Player");
-      await db.collection("boards").doc(boardId)
-        .collection("games").doc(playerName)
-        .set({ score, words: foundWords, played: new Date() });
+
+      await setDoc(doc(db, "boards", boardId, "games", playerName), {
+        score,
+        words: foundWords,
+        played: new Date()
+      });
 
       document.getElementById("finalScore").innerText = "Final Score: " + score;
-      document.getElementById("finalWords").innerText =
-        "Words Found: " + (foundWords.length ? foundWords.join(", ") : "None");
+      document.getElementById("finalWords").innerText = "Words Found: " + (foundWords.length ? foundWords.join(", ") : "None");
 
-      // Load all results for comparison
-      const snap = await db.collection("boards").doc(boardId).collection("games").get();
+      const snap = await getDocs(collection(db, "boards", boardId, "games"));
       let table = "<table><tr><th>Player</th><th>Score</th><th>Words</th></tr>";
-      snap.forEach(doc => {
-        const data = doc.data();
-        table += `<tr><td>${doc.id}</td><td>${data.score}</td><td>${data.words.join(", ")}</td></tr>`;
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        table += `<tr><td>${docSnap.id}</td><td>${data.score}</td><td>${data.words.join(", ")}</td></tr>`;
       });
       table += "</table>";
       document.getElementById("resultsTable").innerHTML = table;
@@ -295,9 +286,9 @@
       document.getElementById("summaryModal").style.display = "flex";
     }
 
-    function closeSummary() {
+    window.closeSummary = function() {
       location.reload();
-    }
+    };
 
     /***********************
      *  Init
