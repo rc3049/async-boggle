@@ -286,8 +286,18 @@
       document.getElementById("summaryModal").style.display = "flex";
     }
 
-    window.closeSummary = function() {
-      location.reload();
+    window.closeSummary = async function() {
+      // Generate a fresh board (new boardId, new dice roll, new URL)
+      selectedCubes = [];
+      currentWord = "";
+      foundWords = [];
+      score = 0;
+      document.getElementById("score").innerText = "Score: 0";
+      document.getElementById("word-list").innerText = "Words Found: ";
+      document.getElementById("current-word").innerText = "Current Word: ";
+      document.getElementById("summaryModal").style.display = "none";
+    
+      await generateBoard();  // 👈 new board instead of reload
     };
 
     /***********************
