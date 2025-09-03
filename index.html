@@ -215,7 +215,12 @@
           score += wordScore;
     
           document.getElementById("score").innerText = "Score: " + score;
-          document.getElementById("word-list").innerText = "Words Found: " + foundWords.join(", ");
+          document.getElementById("word-list").innerText =
+            "Words Found: " + foundWords.join(", ");
+          
+          // ✅ Clear status message when valid word is accepted
+          statusDiv.innerText = "";
+    
           clearSelection();
         } else {
           statusDiv.innerText = "Word already found!";
@@ -228,6 +233,7 @@
         clearSelection();
       }
     }
+
 
     function updateTimer() {
       if (timeLeft <= 0) {
