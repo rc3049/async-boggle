@@ -12,9 +12,7 @@
       margin: 0;
       padding: 0;
     }
-    h1 {
-      margin: 20px;
-    }
+    h1 { margin: 20px; }
     #game-board {
       display: grid;
       grid-template-columns: repeat(4, 80px);
@@ -36,12 +34,8 @@
       cursor: pointer;
       border-radius: 8px;
     }
-    .cube.selected {
-      background: #add8e6;
-    }
-    #controls {
-      margin: 20px;
-    }
+    .cube.selected { background: #add8e6; }
+    #controls { margin: 20px; }
     button {
       margin: 5px;
       padding: 10px 20px;
@@ -52,25 +46,16 @@
       background: #333;
       color: white;
     }
-    button:hover {
-      background: #555;
-    }
-    #word-list {
-      margin: 20px;
-    }
-    #timer {
-      font-size: 20px;
-      font-weight: bold;
-      margin: 10px;
-    }
+    button:hover { background: #555; }
+    #word-list { margin: 20px; }
+    #timer { font-size: 20px; font-weight: bold; margin: 10px; }
+    #statusDiv { color: red; margin: 10px; }
     /* Modal styles */
     #summaryModal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(0,0,0,0.6);
       display: flex;
       align-items: center;
@@ -81,20 +66,23 @@
       padding: 20px;
       border-radius: 10px;
       text-align: center;
-      max-width: 400px;
+      max-width: 500px;
     }
+    table { border-collapse: collapse; margin: 15px auto; }
+    table, th, td { border: 1px solid #333; padding: 6px 10px; }
   </style>
 </head>
 <body>
   <h1>Boggle Game</h1>
   <div id="timer">Time: 3:00</div>
   <div id="game-board"></div>
+
   <div id="controls">
-    <button onclick="newGame()">New Game</button>
     <button onclick="submitWord()">Submit Word</button>
     <button onclick="clearSelection()">Clear Selection</button>
   </div>
-  <div id="statusDiv" style="color: red; margin: 10px;"></div>
+
+  <div id="statusDiv"></div>
   <div id="current-word">Current Word: </div>
   <div id="score">Score: 0</div>
   <div id="word-list">Words Found: </div>
@@ -105,11 +93,34 @@
       <h2>Time's Up!</h2>
       <div id="finalScore"></div>
       <div id="finalWords"></div>
+      <h3>Results</h3>
+      <div id="resultsTable"></div>
       <button onclick="closeSummary()">Play Again</button>
     </div>
   </div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js"></script>
+
   <script>
+    /***********************
+     *  Firebase Setup
+     ***********************/
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "XXXX",
+      appId: "XXXX"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    /***********************
+     *  Boggle Setup
+     ***********************/
     const BOGGLE_DICE = [
       ["A", "A", "E", "E", "G", "N"],
       ["E", "L", "R", "T", "T", "Y"],
@@ -135,37 +146,43 @@
     let score = 0;
     let timer;
     let timeLeft = 180; // seconds
+    let boardId = null;
+    let board = [];
+    let playerName = "";
 
-    // Simple dictionary for demo
-    let dictionary = [];
+    // Simple dictionary placeholder (replace with real)
+    let dictionary = ["cat","dog","tree","rat","car","water","word"];
 
-    async function loadDictionary() {
-      const response = await fetch('words.json');
-      dictionary = await response.json();
-    }
-    
-    // Call this on page load
-    loadDictionary();
-
-
-    function newGame() {
-      // Reset
-      clearInterval(timer);
-      timeLeft = 180;
-      document.getElementById("timer").innerText = "Time: 3:00";
-      selectedCubes = [];
-      currentWord = "";
-      foundWords = [];
-      score = 0;
-      document.getElementById("current-word").innerText = "Current Word: ";
-      document.getElementById("score").innerText = "Score: 0";
-      document.getElementById("word-list").innerText = "Words Found: ";
-      document.getElementById("summaryModal").style.display = "none";
-
-      // Shuffle dice and generate board
+    /***********************
+     *  Board Handling
+     ***********************/
+    async function generateBoard() {
       const shuffled = BOGGLE_DICE.sort(() => 0.5 - Math.random());
-      const board = shuffled.map(die => die[Math.floor(Math.random() * 6)]);
+      board = shuffled.map(die => die[Math.floor(Math.random() * 6)]);
+      // Save to Firestore
+      boardId = Date.now().toString();
+      await db.collection("boards").doc(boardId).set({
+        board: board,
+        created: new Date()
+      });
+      // Update URL
+      window.history.replaceState({}, "", "?board=" + boardId);
+      renderBoard();
+    }
 
+    async function loadBoard(id) {
+      const doc = await db.collection("boards").doc(id).get();
+      if (doc.exists) {
+        board = doc.data().board;
+        boardId = id;
+        renderBoard();
+      } else {
+        alert("Board not found, starting new one.");
+        generateBoard();
+      }
+    }
+
+    function renderBoard() {
       const gameBoard = document.getElementById("game-board");
       gameBoard.innerHTML = "";
       board.forEach((letter, i) => {
@@ -176,17 +193,19 @@
         div.onclick = () => selectCube(div);
         gameBoard.appendChild(div);
       });
-
-      // Start timer
-      timer = setInterval(updateTimer, 1000);
+      startTimer();
     }
 
+    /***********************
+     *  Gameplay
+     ***********************/
     function selectCube(cube) {
       if (!cube.classList.contains("selected") && timeLeft > 0) {
         cube.classList.add("selected");
         selectedCubes.push(cube);
         currentWord += cube.innerText;
-        document.getElementById("current-word").innerText = "Current Word: " + currentWord;
+        document.getElementById("current-word").innerText =
+          "Current Word: " + currentWord;
       }
     }
 
@@ -202,8 +221,6 @@
       if (dictionary.includes(word)) {
         if (!foundWords.includes(word)) {
           foundWords.push(word);
-    
-          // Calculate score based on Boggle rules
           let wordScore = 0;
           const len = word.length;
           if (len <= 4) wordScore = 1;
@@ -211,16 +228,12 @@
           else if (len === 6) wordScore = 3;
           else if (len === 7) wordScore = 5;
           else if (len >= 8) wordScore = 11;
-    
           score += wordScore;
-    
+
           document.getElementById("score").innerText = "Score: " + score;
           document.getElementById("word-list").innerText =
             "Words Found: " + foundWords.join(", ");
-          
-          // ✅ Clear status message when valid word is accepted
-          statusDiv.innerText = "";
-    
+          document.getElementById("statusDiv").innerText = "";
           clearSelection();
         } else {
           statusDiv.innerText = "Word already found!";
@@ -234,6 +247,11 @@
       }
     }
 
+    function startTimer() {
+      timeLeft = 180;
+      clearInterval(timer);
+      timer = setInterval(updateTimer, 1000);
+    }
 
     function updateTimer() {
       if (timeLeft <= 0) {
@@ -244,18 +262,50 @@
       timeLeft--;
       const minutes = Math.floor(timeLeft / 60);
       const seconds = timeLeft % 60;
-      document.getElementById("timer").innerText = `Time: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+      document.getElementById("timer").innerText =
+        `Time: ${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     }
 
-    function endGameSummary() {
+    async function endGameSummary() {
+      // Save result to Firestore
+      if (!playerName) playerName = prompt("Enter your name:", "Player");
+      await db.collection("boards").doc(boardId)
+        .collection("games").doc(playerName)
+        .set({ score, words: foundWords, played: new Date() });
+
       document.getElementById("finalScore").innerText = "Final Score: " + score;
-      document.getElementById("finalWords").innerText = "Words Found: " + (foundWords.length ? foundWords.join(", ") : "None");
+      document.getElementById("finalWords").innerText =
+        "Words Found: " + (foundWords.length ? foundWords.join(", ") : "None");
+
+      // Load all results for comparison
+      const snap = await db.collection("boards").doc(boardId).collection("games").get();
+      let table = "<table><tr><th>Player</th><th>Score</th><th>Words</th></tr>";
+      snap.forEach(doc => {
+        const data = doc.data();
+        table += `<tr><td>${doc.id}</td><td>${data.score}</td><td>${data.words.join(", ")}</td></tr>`;
+      });
+      table += "</table>";
+      document.getElementById("resultsTable").innerHTML = table;
+
       document.getElementById("summaryModal").style.display = "flex";
     }
 
     function closeSummary() {
-      newGame();
+      location.reload();
     }
+
+    /***********************
+     *  Init
+     ***********************/
+    window.onload = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("board");
+      if (id) {
+        await loadBoard(id);
+      } else {
+        await generateBoard();
+      }
+    };
   </script>
 </body>
 </html>
